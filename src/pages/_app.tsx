@@ -3,6 +3,10 @@ import type { AppProps } from "next/app";
 import Head from "next/head";
 import { Geist } from "next/font/google";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { useRouter } from "next/router";
+import ResponsiveShell from "@/components/layout/ResponsiveShell";
+
+const FULL_WIDTH_ROUTES = new Set<string>(["/"]);
 
 const geist = Geist({
   subsets: ["latin"],
@@ -10,25 +14,20 @@ const geist = Geist({
 });
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const isFullWidth = FULL_WIDTH_ROUTES.has(router.pathname);
+
   return (
     <>
-      <Head>
-        <title>Jakal</title>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
-        />
-      </Head>
-
-      <div
-        className={`${geist.variable} font-sans min-h-screen bg-slate-200 flex items-center justify-center`}
-      >
-        <main className="w-full min-h-screen bg-white shadow-2xl overflow-y-auto relative">
-          <AuthProvider>
+      <AuthProvider>
+        {isFullWidth ? (
+          <Component {...pageProps} />
+        ) : (
+          <ResponsiveShell>
             <Component {...pageProps} />
-          </AuthProvider>
-        </main>
-      </div>
+          </ResponsiveShell>
+        )}
+      </AuthProvider>
     </>
   );
 }
