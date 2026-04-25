@@ -5,7 +5,10 @@ export type EventStatus =
   | "active"
   | "completed"
   | "pending_validation"
-  | "validated";
+  | "validated"
+  | "cancelled";
+
+export type AttendanceStatus = "not_registered" | "registered" | "completed";
 
 export interface EventCardData {
   id: string;
@@ -18,6 +21,7 @@ export interface EventCardData {
   maxParticipants: number | null;
   imageUrl?: string | null;
   pointsLabel?: string;
+  attendanceStatus: AttendanceStatus;
 }
 
 interface StatusConfig {
@@ -52,20 +56,58 @@ const STATUS_CONFIG: Record<EventStatus, StatusConfig> = {
     pillBg: "bg-slate-100",
     pillText: "text-slate-600",
   },
+  cancelled: { label: "Batal", pillBg: "bg-red-100", pillText: "text-red-700" },
 };
 
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?w=800&q=70";
 
-interface EventCardProps {
-  event: EventCardData;
-  href?: string;
+interface CtaConfig {
+  label: string;
+  href: string;
+  variant: "primary" | "secondary";
 }
 
-export default function EventCard({ event, href }: EventCardProps) {
+function getCtaConfig(
+  eventId: string,
+  attendanceStatus: AttendanceStatus,
+): CtaConfig {
+  switch (attendanceStatus) {
+    case "completed":
+      return {
+        label: "Lihat Status",
+        href: `/events/${eventId}`,
+        variant: "secondary",
+      };
+    case "registered":
+      return {
+        label: "Lihat Status",
+        href: `/events/${eventId}/complete`,
+        variant: "secondary",
+      };
+    case "not_registered":
+    default:
+      return {
+        label: "Daftar",
+        href: `/events/${eventId}`,
+        variant: "primary",
+      };
+  }
+}
+
+interface EventCardProps {
+  event: EventCardData;
+}
+
+export default function EventCard({ event }: EventCardProps) {
   const config = STATUS_CONFIG[event.status];
-  const linkHref = href ?? `/events/${event.id}`;
   const imageUrl = event.imageUrl ?? PLACEHOLDER_IMAGE;
+  const cta = getCtaConfig(event.id, event.attendanceStatus);
+
+  const ctaClasses =
+    cta.variant === "primary"
+      ? "bg-slate-900 text-white hover:bg-slate-800"
+      : "bg-slate-100 text-slate-900 border border-slate-200 hover:bg-slate-200";
 
   return (
     <article className="rounded-3xl bg-white overflow-hidden shadow-sm">
@@ -108,10 +150,10 @@ export default function EventCard({ event, href }: EventCardProps) {
         </div>
 
         <Link
-          href={linkHref}
-          className="block w-full py-3.5 rounded-2xl bg-slate-900 text-white text-sm font-semibold text-center hover:bg-slate-800 active:scale-[0.99] transition-all"
+          href={cta.href}
+          className={`block w-full py-3.5 rounded-2xl text-sm font-semibold text-center active:scale-[0.99] transition-all ${ctaClasses}`}
         >
-          Daftar
+          {cta.label}
         </Link>
       </div>
     </article>

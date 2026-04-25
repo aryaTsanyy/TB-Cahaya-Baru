@@ -34,9 +34,28 @@ body {
   box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
   transition: all 0.2s ease-in-out;
 
-  /* Efek hover dimasukkan ke dalam (nesting) menggunakan '&:hover' */
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  }
+}
+@utility bg-jakal-leader {
+  background: linear-gradient(180deg, #f4fad7 0%, #e6f3fc 60.1%, #feffff 100%);
+}
+
+@keyframes reward-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.reward-sunburst {
+  animation: reward-spin 12s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reward-sunburst {
+    animation: none !important;
   }
 }

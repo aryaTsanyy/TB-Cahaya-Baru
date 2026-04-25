@@ -4,11 +4,24 @@ import Link from "next/link";
 import Head from "next/head";
 import { useAuth } from "@/hooks/UseAuth";
 import { supabase } from "@/lib/SupabaseClient";
+import EventCardLeader, {
+  type LeaderEventCardData,
+} from "@/components/event/EventCardLeader";
+import type { EventStatus } from "@/components/event/EventCard";
 
 interface LeaderStats {
   activeEvents: number;
-  totalAttendances: number;
   completedEvents: number;
+}
+
+interface EventRow {
+  id: string;
+  title: string;
+  status: EventStatus;
+  max_participants: number | null;
+  image_url: string | null;
+  points_per_hunter_override: number | null;
+  event_attendances: Array<{ count: number }>;
 }
 
 export default function LeaderDashboard() {
@@ -16,27 +29,28 @@ export default function LeaderDashboard() {
   const { profile, isLoading, signOut } = useAuth();
   const [stats, setStats] = useState<LeaderStats>({
     activeEvents: 0,
-    totalAttendances: 0,
     completedEvents: 0,
   });
-  const [loadingStats, setLoadingStats] = useState<boolean>(true);
+  const [events, setEvents] = useState<LeaderEventCardData[]>([]);
+  const [loadingData, setLoadingData] = useState<boolean>(true);
 
   useEffect(() => {
     if (isLoading) return;
     if (!profile) {
-      void router.replace("/login");
+      void router.replace("/auth/login");
       return;
     }
-    if (profile.role !== "leader") {
+    if (profile.role !== "leader" && profile.role !== "admin") {
       void router.replace("/hunter/dashboard");
     }
   }, [profile, isLoading, router]);
 
-  const loadStats = useCallback(async (): Promise<void> => {
-    if (!profile || profile.role !== "leader") return;
-    setLoadingStats(true);
+  const loadData = useCallback(async (): Promise<void> => {
+    if (!profile || (profile.role !== "leader" && profile.role !== "admin"))
+      return;
+    setLoadingData(true);
 
-    const [{ count: active }, { count: completed }] = await Promise.all([
+    const [activeRes, completedRes, eventsRes] = await Promise.all([
       supabase
         .from("events")
         .select("*", { count: "exact", head: true })
@@ -47,26 +61,51 @@ export default function LeaderDashboard() {
         .select("*", { count: "exact", head: true })
         .eq("leader_id", profile.id)
         .in("status", ["validated", "completed"]),
+      supabase
+        .from("events")
+        .select(
+          "id, title, status, max_participants, image_url, points_per_hunter_override, event_attendances(count)",
+        )
+        .eq("leader_id", profile.id)
+        .in("status", ["upcoming", "active"])
+        .order("start_time", { ascending: false })
+        .returns<EventRow[]>(),
     ]);
 
+    const eventCards: LeaderEventCardData[] = (eventsRes.data ?? []).map(
+      (evt) => ({
+        id: evt.id,
+        title: evt.title,
+        status: evt.status,
+        participantCount: evt.event_attendances[0]?.count ?? 0,
+        maxParticipants: evt.max_participants,
+        imageUrl: evt.image_url,
+        pointsPerHunter: evt.points_per_hunter_override,
+      }),
+    );
+
     setStats({
-      activeEvents: active ?? 0,
-      totalAttendances: 0,
-      completedEvents: completed ?? 0,
+      activeEvents: activeRes.count ?? 0,
+      completedEvents: completedRes.count ?? 0,
     });
-    setLoadingStats(false);
+    setEvents(eventCards);
+    setLoadingData(false);
   }, [profile]);
 
   useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
+    void loadData();
+  }, [loadData]);
 
   const handleLogout = async (): Promise<void> => {
     await signOut();
-    void router.replace("/login");
+    void router.replace("/auth/login");
   };
 
-  if (isLoading || !profile || profile.role !== "leader") {
+  if (
+    isLoading ||
+    !profile ||
+    (profile.role !== "leader" && profile.role !== "admin")
+  ) {
     return (
       <div className="min-h-screen bg-[#dff1f3] flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-slate-300 border-t-slate-900 animate-spin" />
@@ -82,20 +121,13 @@ export default function LeaderDashboard() {
         <title>Beranda Leader · Jakal</title>
       </Head>
 
-      <div className="min-h-screen bg-[#dff1f3] text-slate-900">
+      <div className="min-h-screen bg-jakal-leader text-slate-900">
         <div className="mx-auto w-full max-w-md min-h-screen flex flex-col px-6 pb-10">
           <header className="flex items-start justify-between pt-6 pb-6">
             <div>
               <p className="text-sm text-slate-500">Penggerak Aksi</p>
               <h1 className="text-2xl font-semibold tracking-tight mt-0.5">
-                Halo,{" "}
-                <span className="relative inline-block">
-                  <span className="relative z-10">{firstName}!</span>
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-0 right-0 bottom-1 h-2 bg-sky-300/60 -z-0 rounded-sm"
-                  />
-                </span>
+                Halo, {firstName}!
               </h1>
             </div>
             <button
@@ -124,52 +156,52 @@ export default function LeaderDashboard() {
           <section className="rounded-3xl bg-white p-4 shadow-sm">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Event Aktif</p>
-                <p className="text-3xl font-semibold tabular-nums tracking-tight mt-1">
-                  {loadingStats ? "—" : stats.activeEvents}
+                <p className="text-sm text-slate-500">Aksi Aktif</p>
+                <p className="text-4xl font-semibold tabular-nums tracking-tight mt-2">
+                  {loadingData ? "—" : stats.activeEvents}
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">Selesai</p>
-                <p className="text-3xl font-semibold tabular-nums tracking-tight mt-1">
-                  {loadingStats ? "—" : stats.completedEvents}
+                <p className="text-sm text-slate-500">Aksi Selesai</p>
+                <p className="text-4xl font-semibold tabular-nums tracking-tight mt-2">
+                  {loadingData ? "—" : stats.completedEvents}
                 </p>
               </div>
             </div>
 
             <Link
               href="/events/create"
-              className="mt-3 w-full py-4 rounded-2xl bg-slate-900 text-white text-sm font-semibold transition-all hover:bg-slate-800 active:scale-[0.99] flex items-center justify-center gap-2"
+              className="mt-3 w-full py-4 rounded-2xl bg-slate-900 text-white text-sm font-semibold transition-all hover:bg-slate-800 active:scale-[0.99] flex items-center justify-center"
             >
-              Buat Event Baru
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-5 h-5"
-                aria-hidden="true"
-              >
-                <path
-                  d="M12 5v14M5 12h14"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+              Buat Event
             </Link>
           </section>
 
           <section className="mt-8 flex-1">
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
-              Event saya
+              Event Aktif
             </h2>
-            <div className="rounded-2xl bg-white p-8 text-center">
-              <p className="text-sm font-medium text-slate-700">
-                Belum ada event
-              </p>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Buat event pertama untuk memulai aksi
-              </p>
-            </div>
+
+            {loadingData ? (
+              <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
+                <div className="w-6 h-6 rounded-full border-2 border-slate-300 border-t-slate-900 animate-spin mx-auto" />
+              </div>
+            ) : events.length === 0 ? (
+              <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
+                <p className="text-sm font-medium text-slate-700">
+                  Belum ada event aktif
+                </p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Buat event pertamamu untuk memulai aksi
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {events.map((evt) => (
+                  <EventCardLeader key={evt.id} event={evt} />
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

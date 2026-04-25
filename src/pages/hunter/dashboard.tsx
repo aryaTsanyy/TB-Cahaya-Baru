@@ -6,6 +6,7 @@ import { supabase } from "@/lib/SupabaseClient";
 import EventCard, {
   type EventCardData,
   type EventStatus,
+  type AttendanceStatus,
 } from "@/components/event/EventCard";
 import QRScannerModal from "@/components/hunter/QRScannerModal";
 
@@ -23,7 +24,13 @@ interface EventRow {
   status: EventStatus;
   max_participants: number | null;
   image_url: string | null;
+  points_per_hunter_override: number | null;
   event_attendances: Array<{ count: number }>;
+}
+
+interface MyAttendanceRow {
+  event_id: string;
+  status: "checked_in" | "checked_out" | "invalidated" | "completed_action";
 }
 
 export default function HunterDashboard() {
@@ -52,37 +59,62 @@ export default function HunterDashboard() {
     if (!profile || profile.role !== "hunter") return;
     setLoadingData(true);
 
-    const { count: activeCount } = await supabase
-      .from("events")
-      .select("*", { count: "exact", head: true })
-      .in("status", ["upcoming", "active"]);
+    // Parallel fetch: count active events, list events, my attendances
+    const [activeRes, eventsRes, myAttendancesRes] = await Promise.all([
+      supabase
+        .from("events")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["upcoming", "active"]),
+      supabase
+        .from("events")
+        .select(
+          "id, title, river_name, start_time, end_time, status, max_participants, image_url, points_per_hunter_override, event_attendances(count)",
+        )
+        .in("status", ["upcoming", "active"])
+        .order("start_time", { ascending: true })
+        .limit(20)
+        .returns<EventRow[]>(),
+      supabase
+        .from("event_attendances")
+        .select("event_id, status")
+        .eq("hunter_id", profile.id)
+        .returns<MyAttendanceRow[]>(),
+    ]);
 
-    const { data: eventsData } = await supabase
-      .from("events")
-      .select(
-        "id, title, river_name, start_time, end_time, status, max_participants, image_url, event_attendances(count)",
+    // Build attendance lookup map
+    const attendanceMap = new Map<string, AttendanceStatus>();
+    for (const att of myAttendancesRes.data ?? []) {
+      attendanceMap.set(
+        att.event_id,
+        att.status === "completed_action" ? "completed" : "registered",
+      );
+    }
+
+    // Map events ke card data + filter event yang sudah Hunter selesaikan
+    const eventCards: EventCardData[] = (eventsRes.data ?? [])
+      .map(
+        (evt): EventCardData => ({
+          id: evt.id,
+          title: evt.title,
+          riverName: evt.river_name,
+          dateLabel: formatDateLabel(evt.start_time),
+          timeLabel: formatTimeRange(evt.start_time, evt.end_time),
+          status: evt.status,
+          participantCount: evt.event_attendances[0]?.count ?? 0,
+          maxParticipants: evt.max_participants,
+          imageUrl: evt.image_url,
+          pointsLabel: evt.points_per_hunter_override
+            ? `${evt.points_per_hunter_override} point`
+            : undefined,
+          attendanceStatus: attendanceMap.get(evt.id) ?? "not_registered",
+        }),
       )
-      .in("status", ["upcoming", "active"])
-      .order("start_time", { ascending: true })
-      .limit(10)
-      .returns<EventRow[]>();
-
-    const eventCards: EventCardData[] = (eventsData ?? []).map((evt) => ({
-      id: evt.id,
-      title: evt.title,
-      riverName: evt.river_name,
-      dateLabel: formatDateLabel(evt.start_time),
-      timeLabel: formatTimeRange(evt.start_time, evt.end_time),
-      status: evt.status,
-      participantCount: evt.event_attendances[0]?.count ?? 0,
-      maxParticipants: evt.max_participants,
-      imageUrl: evt.image_url,
-      pointsLabel: "20 point",
-    }));
+      // Hide event yang sudah completed by this Hunter
+      .filter((evt) => evt.attendanceStatus !== "completed");
 
     setStats({
       totalPoints: profile.total_points,
-      activeEventsCount: activeCount ?? 0,
+      activeEventsCount: activeRes.count ?? 0,
     });
     setEvents(eventCards);
     setLoadingData(false);
@@ -94,7 +126,7 @@ export default function HunterDashboard() {
 
   const handleLogout = async (): Promise<void> => {
     await signOut();
-    void router.replace("/auth/login");
+    void router.replace("/login");
   };
 
   const handleScanSuccess = async (): Promise<void> => {
@@ -208,7 +240,7 @@ export default function HunterDashboard() {
             ) : events.length === 0 ? (
               <div className="rounded-2xl bg-white p-8 text-center">
                 <p className="text-sm font-medium text-slate-700">
-                  Belum ada event aktif
+                  Belum ada event tersedia
                 </p>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   Cek lagi nanti untuk melihat aksi pembersihan terbaru
