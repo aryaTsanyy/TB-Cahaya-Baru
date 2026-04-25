@@ -21,6 +21,7 @@ interface EventRow {
   max_participants: number | null;
   image_url: string | null;
   points_per_hunter_override: number | null;
+  logistics_status: "collected" | "in_transit" | "arrived";
   event_attendances: Array<{ count: number }>;
 }
 
@@ -53,9 +54,14 @@ export default function LeaderDashboard() {
     const [activeRes, completedRes, eventsRes] = await Promise.all([
       supabase
         .from("events")
-        .select("*", { count: "exact", head: true })
+        .select(
+          "id, title, status, max_participants, image_url, points_per_hunter_override, logistics_status, event_attendances(count)",
+        )
         .eq("leader_id", profile.id)
-        .in("status", ["upcoming", "active"]),
+        .in("status", ["upcoming", "active", "pending_validation"])
+        .neq("logistics_status", "arrived")
+        .order("start_time", { ascending: false })
+        .returns<EventRow[]>(),
       supabase
         .from("events")
         .select("*", { count: "exact", head: true })

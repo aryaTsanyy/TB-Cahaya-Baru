@@ -72,9 +72,8 @@ export default function CheckInPage() {
           return;
         }
 
-        // Validasi: QR ini harus untuk event yang sama dengan halaman ini
         if (res.event_id !== eventId) {
-          setErrorMsg("QR ini bukan untuk event ini.");
+          setErrorMsg("QR ini bukan untuk event yang sedang Anda daftar.");
           setState("error");
           return;
         }
@@ -97,15 +96,35 @@ export default function CheckInPage() {
 
     const start = async (): Promise<void> => {
       try {
+        if (
+          typeof window !== "undefined" &&
+          window.location.protocol === "http:" &&
+          window.location.hostname !== "localhost"
+        ) {
+          throw new Error("HTTPS_REQUIRED");
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("CAMERA_NOT_SUPPORTED");
+        }
+
         const mod = await import("html5-qrcode");
         if (cancelled) return;
 
-        const scanner = new mod.Html5Qrcode(SCANNER_ID);
+        const scanner = new mod.Html5Qrcode(SCANNER_ID, { verbose: false });
         scannerRef.current = scanner;
+
+        // Compute qrbox size: 70% of shortest viewport dimension
+        const minDim = Math.min(window.innerWidth, window.innerHeight);
+        const qrSize = Math.floor(minDim * 0.7);
 
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
+          {
+            fps: 10,
+            qrbox: { width: qrSize, height: qrSize },
+            aspectRatio: window.innerWidth / window.innerHeight,
+          },
           (decodedText: string) => {
             void handleScan(decodedText);
           },
@@ -115,7 +134,7 @@ export default function CheckInPage() {
         if (!cancelled) setState("scanning");
       } catch (err) {
         if (cancelled) return;
-        setErrorMsg(err instanceof Error ? err.message : "Gagal akses kamera.");
+        setErrorMsg(parseCameraError(err));
         setState("error");
       }
     };
@@ -150,17 +169,21 @@ export default function CheckInPage() {
     <>
       <Head>
         <title>Scan QR · Jakal</title>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+        />
       </Head>
 
-      <div className="min-h-screen bg-black text-white relative overflow-hidden">
-        <div
-          id={SCANNER_ID}
-          className="absolute inset-0 [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
-        />
+      <div className="fixed inset-0 bg-black text-white overflow-hidden">
+        {/* Scanner container — render dengan video fullscreen via global CSS */}
+        <div id={SCANNER_ID} className="absolute inset-0 z-0 jakal-scanner" />
 
-        <div className="absolute inset-0 pointer-events-none flex flex-col">
+        {/* Overlay — frame guides, tombol close, hint text */}
+        <div className="absolute inset-0 z-10 pointer-events-none flex flex-col">
           <div className="flex-1" />
 
+          {/* Frame guides */}
           <div className="relative w-64 h-64 mx-auto">
             <CornerBracket className="absolute -top-1 -left-1" />
             <CornerBracket className="absolute -top-1 -right-1 rotate-90" />
@@ -168,27 +191,29 @@ export default function CheckInPage() {
             <CornerBracket className="absolute -bottom-1 -left-1 -rotate-90" />
           </div>
 
-          <div className="flex-1 flex items-center justify-center px-8 pt-12">
+          <div className="flex-1 flex items-start justify-center px-8 pt-12">
             {state === "scanning" && (
-              <p className="text-sm text-white/80 text-center">
+              <p className="text-sm text-white/90 text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                 Scan QR Code untuk mendeteksi kehadiran
               </p>
             )}
             {state === "starting" && (
-              <p className="text-sm text-white/60 text-center">
+              <p className="text-sm text-white/70 text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                 Memuat kamera...
               </p>
             )}
           </div>
 
-          <div className="h-20" />
+          <div className="h-12" />
         </div>
 
+        {/* Close button — pointer-events enabled */}
         <button
           type="button"
           onClick={() => void router.back()}
           aria-label="Tutup"
-          className="absolute top-6 left-6 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition-colors pointer-events-auto"
+          className="absolute top-6 left-6 z-20 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+          style={{ top: "max(1.5rem, env(safe-area-inset-top, 1.5rem))" }}
         >
           <svg
             viewBox="0 0 24 24"
@@ -205,15 +230,17 @@ export default function CheckInPage() {
           </svg>
         </button>
 
+        {/* Processing overlay */}
         {state === "processing" && (
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="absolute inset-0 z-30 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center">
             <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white animate-spin mb-4" />
             <p className="text-sm text-white/90">Memproses...</p>
           </div>
         )}
 
+        {/* Success overlay */}
         {state === "success" && (
-          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-sm flex flex-col items-center justify-center px-8 text-center">
+          <div className="absolute inset-0 z-30 bg-emerald-950/90 backdrop-blur-sm flex flex-col items-center justify-center px-8 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-500/30 border border-emerald-400/50 flex items-center justify-center mb-4">
               <svg
                 viewBox="0 0 24 24"
@@ -239,8 +266,9 @@ export default function CheckInPage() {
           </div>
         )}
 
+        {/* Error overlay */}
         {state === "error" && (
-          <div className="absolute inset-0 bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center px-8 text-center">
+          <div className="absolute inset-0 z-30 bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center px-8 text-center">
             <div className="w-16 h-16 rounded-full bg-red-500/30 border border-red-400/50 flex items-center justify-center mb-4">
               <svg
                 viewBox="0 0 24 24"
@@ -286,6 +314,29 @@ export default function CheckInPage() {
             </div>
           </div>
         )}
+
+        {/* Global styles untuk override html5-qrcode internal layout */}
+        <style jsx global>{`
+          .jakal-scanner {
+            width: 100% !important;
+            height: 100% !important;
+          }
+          .jakal-scanner > div {
+            width: 100% !important;
+            height: 100% !important;
+            padding: 0 !important;
+            border: 0 !important;
+          }
+          .jakal-scanner video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            display: block !important;
+          }
+          .jakal-scanner canvas {
+            display: none !important;
+          }
+        `}</style>
       </div>
     </>
   );
@@ -300,16 +351,44 @@ function CornerBracket({ className = "" }: { className?: string }) {
   );
 }
 
+function parseCameraError(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.message === "HTTPS_REQUIRED") {
+      return "Kamera butuh HTTPS. Akses via domain HTTPS (bukan IP lokal).";
+    }
+    if (err.message === "CAMERA_NOT_SUPPORTED") {
+      return "Browser tidak mendukung akses kamera.";
+    }
+    if (
+      err.name === "NotAllowedError" ||
+      err.name === "PermissionDeniedError"
+    ) {
+      return "Akses kamera ditolak. Buka pengaturan browser dan izinkan kamera untuk situs ini.";
+    }
+    if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+      return "Tidak ada kamera di perangkat ini.";
+    }
+    if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+      return "Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain dulu.";
+    }
+    if (err.name === "SecurityError") {
+      return "Akses kamera diblokir. Pastikan situs HTTPS dan izin kamera aktif.";
+    }
+    return err.message;
+  }
+  return "Gagal akses kamera. Coba refresh halaman.";
+}
+
 function translateError(error: string | undefined): string {
   switch (error) {
     case "NOT_AUTHENTICATED":
       return "Sesi habis. Silakan login ulang.";
     case "INVALID_QR":
-      return "QR Code tidak valid.";
+      return "QR Code tidak valid. Pastikan QR berasal dari Jakal.";
     case "EVENT_INACTIVE":
-      return "Event sudah tidak aktif.";
+      return "Event sudah tidak aktif atau sudah selesai.";
     case "EVENT_OUT_OF_WINDOW":
-      return "Event di luar jadwal.";
+      return "Event di luar jadwal. Belum dimulai atau sudah berakhir.";
     default:
       return "Terjadi kesalahan. Coba lagi.";
   }

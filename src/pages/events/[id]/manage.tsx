@@ -126,14 +126,12 @@ export default function EventManagePage() {
     };
   }, [eventId, loadAttendanceCount]);
 
-  // Tap "Selesai" di QR modal → advance event status & masuk logistics view
   const handleQrFinish = async (): Promise<void> => {
     if (!event) return;
     setClosingQr(true);
     setErrorMsg(null);
 
     try {
-      // Hanya call RPC kalau status masih 'upcoming' atau 'active'
       if (event.status === "upcoming" || event.status === "active") {
         const { data, error } = await supabase.rpc(
           "mark_event_pending_validation",
@@ -172,11 +170,22 @@ export default function EventManagePage() {
         p_weight_kg: weight,
       });
       if (error) throw error;
-      const res = data as { success: boolean; error?: string };
+      const res = data as {
+        success: boolean;
+        error?: string;
+        logistics_status?: string;
+      };
       if (!res.success) {
         setErrorMsg(translateError(res.error));
         return;
       }
+
+      if (res.logistics_status === "arrived") {
+        setTimeout(() => {
+          void router.push("/leader/dashboard");
+        }, 1500);
+      }
+
       await loadEvent();
       setWeightInput("");
     } catch (err) {
@@ -306,21 +315,27 @@ export default function EventManagePage() {
 
             {event.logistics_status !== "arrived" &&
               event.status !== "validated" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (eventEnded || event.status === "pending_validation") {
-                      setView("logistics");
-                    } else {
-                      setView("qr_modal");
-                    }
-                  }}
-                  className="mt-5 w-full py-4 rounded-2xl bg-slate-900 text-white text-sm font-semibold transition-all hover:bg-slate-800 active:scale-[0.99]"
-                >
-                  {event.status === "pending_validation" || eventEnded
-                    ? "Lanjutkan ke Status"
-                    : "Generate QR Code"}
-                </button>
+                <div className="mt-5 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setView("qr_modal")}
+                    className="w-full py-4 rounded-2xl bg-slate-900 text-white text-sm font-semibold transition-all hover:bg-slate-800 active:scale-[0.99]"
+                  >
+                    {attendanceCount > 0
+                      ? "Tampilkan QR Code"
+                      : "Generate QR Code"}
+                  </button>
+
+                  {(eventEnded || event.status === "pending_validation") && (
+                    <button
+                      type="button"
+                      onClick={() => setView("logistics")}
+                      className="w-full py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-semibold transition-all hover:bg-slate-50 active:scale-[0.99]"
+                    >
+                      Kelola Pengiriman
+                    </button>
+                  )}
+                </div>
               )}
           </article>
 

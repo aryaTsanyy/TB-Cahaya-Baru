@@ -26,7 +26,7 @@ interface CheckInResponse {
   already_checked_in?: boolean;
 }
 
-const SCANNER_ELEMENT_ID = "jakal-qr-scanner-region";
+const SCANNER_ELEMENT_ID = "jakal-modal-scanner-region";
 
 export default function QRScannerModal({
   open,
@@ -109,15 +109,28 @@ export default function QRScannerModal({
     const start = async (): Promise<void> => {
       setState("scanning");
       try {
+        if (
+          typeof window !== "undefined" &&
+          window.location.protocol === "http:" &&
+          window.location.hostname !== "localhost"
+        ) {
+          throw new Error("HTTPS_REQUIRED");
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("CAMERA_NOT_SUPPORTED");
+        }
+
         const mod = await import("html5-qrcode");
         if (cancelled) return;
 
-        const scanner = new mod.Html5Qrcode(SCANNER_ELEMENT_ID);
+        const scanner = new mod.Html5Qrcode(SCANNER_ELEMENT_ID, {
+          verbose: false,
+        });
         scannerRef.current = scanner;
 
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
           (decodedText: string) => {
             void handleScan(decodedText);
           },
@@ -125,7 +138,7 @@ export default function QRScannerModal({
         );
       } catch (err) {
         if (cancelled) return;
-        setErrorMsg(err instanceof Error ? err.message : "Gagal akses kamera.");
+        setErrorMsg(parseCameraError(err));
         setState("error");
       }
     };
@@ -183,7 +196,7 @@ export default function QRScannerModal({
           <div className="relative aspect-square bg-slate-950 mx-6 rounded-2xl overflow-hidden">
             <div
               id={SCANNER_ELEMENT_ID}
-              className="absolute inset-0 [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
+              className="absolute inset-0 jakal-modal-scanner"
             />
 
             {state === "scanning" && (
@@ -278,8 +291,49 @@ export default function QRScannerModal({
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        .jakal-modal-scanner {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        .jakal-modal-scanner > div {
+          width: 100% !important;
+          height: 100% !important;
+          padding: 0 !important;
+          border: 0 !important;
+        }
+        .jakal-modal-scanner video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          display: block !important;
+        }
+        .jakal-modal-scanner canvas {
+          display: none !important;
+        }
+      `}</style>
     </div>
   );
+}
+
+function parseCameraError(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.message === "HTTPS_REQUIRED") return "Kamera butuh HTTPS.";
+    if (err.message === "CAMERA_NOT_SUPPORTED")
+      return "Browser tidak mendukung kamera.";
+    if (
+      err.name === "NotAllowedError" ||
+      err.name === "PermissionDeniedError"
+    ) {
+      return "Akses kamera ditolak. Izinkan di pengaturan browser.";
+    }
+    if (err.name === "NotFoundError")
+      return "Tidak ada kamera di perangkat ini.";
+    if (err.name === "NotReadableError") return "Kamera dipakai aplikasi lain.";
+    return err.message;
+  }
+  return "Gagal akses kamera.";
 }
 
 function translateError(error: string | undefined): string {
@@ -287,11 +341,11 @@ function translateError(error: string | undefined): string {
     case "NOT_AUTHENTICATED":
       return "Sesi habis. Silakan login ulang.";
     case "INVALID_QR":
-      return "QR Code tidak valid atau bukan QR Jakal.";
+      return "QR Code tidak valid.";
     case "EVENT_INACTIVE":
       return "Event sudah tidak aktif.";
     case "EVENT_OUT_OF_WINDOW":
-      return "Event di luar jadwal.";
+      return "Event belum dimulai atau sudah selesai.";
     default:
       return "Terjadi kesalahan. Coba lagi.";
   }

@@ -149,11 +149,11 @@ export default function LandingPage() {
         <div className="h-20" />
         {/* Hero Content */}
         <section className="px-6 pt-2 pb-6">
-          <p className="text-sm font-medium text-slate-500 mb-2">lorem ipsum</p>
+          <p className="text-sm font-medium text-slate-500 mb-2">Jaga Kali</p>
           <h2 className="text-4xl font-bold text-slate-900 leading-tight mb-4">
-            Jaga Kali,
+            Kembalikan Kesegaran
             <br />
-            Jaga Hidup Kita
+            Sungai Kita Semua
           </h2>
           <p className="text-sm text-slate-500 leading-relaxed pr-4 mb-8">
             Jadilah bagian dari solusi. Pilih untuk menjadi pasukan kali di
@@ -166,10 +166,10 @@ export default function LandingPage() {
               onClick={() => router.push("/auth/login")}
               className="flex-1 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-md transition-all active:scale-[0.98]"
             >
-              Mulai Sekarang
+              Mulai Beraksi
             </button>
             <button className="flex-1 py-3.5 rounded-xl bg-white/60 backdrop-blur-md border border-slate-200 text-slate-900 font-semibold text-sm shadow-sm hover:bg-white transition-all active:scale-[0.98]">
-              Lihat lainnya
+              Pelajari Lebih Lanjut
             </button>
           </div>
         </section>
@@ -192,9 +192,11 @@ export default function LandingPage() {
           ></div>
         </div>
         {/* Bottom Content Area & FAQ Section */}
-        <div className="bg-[#FEFFFF] px-6 py-12 flex flex-col items-center text-center flex-grow">
-          <p className="text-sm font-medium text-slate-500 mb-2">lorem ipsum</p>
-          <h2 className="text-3xl font-bold text-slate-900 leading-tight mb-4">
+        <div className="bg-[#FEFFFF] pt-8 px-6 py-12 flex flex-col items-center text-center flex-grow">
+          <p className="text-sm font-medium text-[#09243066]/40 mb-2">
+            Tentang Kami
+          </p>
+          <h2 className="text-3xl font-bold text-[#092430] leading-tight mb-4">
             Jaga Kali,
             <br />
             Jaga Hidup Kita
@@ -251,8 +253,8 @@ export default function LandingPage() {
           </div>
         </div>
         {/* Impact & Steps Section */}
-        <section className="w-full py-10 flex flex-col items-center text-center">
-          <p className="text-sm font-medium text-slate-500 mb-2">lorem ipsum</p>
+        <div className="w-full py-10 flex flex-col items-center text-center">
+          <p className="text-sm font-medium text-slate-500 mb-2">Aksi</p>
           <h2 className="text-3xl font-bold text-slate-900 leading-tight mb-4">
             Mudah Bergabung,
             <br />
@@ -329,7 +331,7 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-        </section>
+        </div>
         {/* CTA & Footer Section */}
         <footer
           className="w-full mt-12 flex flex-col items-center rounded-t-4xl"
@@ -350,7 +352,7 @@ export default function LandingPage() {
               Mari pulihkan ekosistem bersama Jakal!
             </p>
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => router.push("/auth/login")}
               className="px-10 py-3.5 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 transition-all active:scale-[0.95]"
             >
               Mulai Perubahan

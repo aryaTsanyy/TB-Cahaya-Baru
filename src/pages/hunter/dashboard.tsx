@@ -47,7 +47,7 @@ export default function HunterDashboard() {
   useEffect(() => {
     if (isLoading) return;
     if (!profile) {
-      void router.replace("/login");
+      void router.replace("/auth/login");
       return;
     }
     if (profile.role !== "hunter") {
@@ -126,7 +126,7 @@ export default function HunterDashboard() {
 
   const handleLogout = async (): Promise<void> => {
     await signOut();
-    void router.replace("/login");
+    void router.replace("/auth/login");
   };
 
   const handleScanSuccess = async (): Promise<void> => {
