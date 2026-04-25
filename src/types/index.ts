@@ -89,10 +89,6 @@ export interface UserPoint {
   created_at: string;
 }
 
-// ============================================================================
-// INSERT / UPDATE VARIANTS
-// ============================================================================
-
 export type ProfileUpdate = Partial<
   Pick<Profile, "username" | "full_name" | "avatar_url" | "phone">
 >;
@@ -108,10 +104,6 @@ export type RestorationLogInsert = Omit<
   RestorationLog,
   "id" | "created_at" | "distance_meters" | "gps_verified" | "points_awarded"
 >;
-
-// ============================================================================
-// CLAIM FLOW PAYLOADS
-// ============================================================================
 
 export interface ClaimRequest {
   event_id: string;
@@ -136,11 +128,6 @@ export interface ClaimResponse {
     | "UNKNOWN";
   message?: string;
 }
-
-// ============================================================================
-// COMPOSITE TYPES (untuk joined queries via Supabase select)
-// ============================================================================
-
 export interface EventWithLeader extends EventPublic {
   leader: Pick<Profile, "id" | "username" | "full_name" | "avatar_url">;
   participant_count?: number;

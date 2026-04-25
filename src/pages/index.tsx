@@ -1,78 +1,181 @@
+import React, { useState } from "react";
+import Head from "next/head";
+import { useRouter } from "next/router";
 import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export default function LandingPage() {
+  const router = useRouter();
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-export default function Home() {
+  const jakalGradient = {
+    background:
+      "linear-gradient(180deg, #D7F9FA 0%, #E6F3FC 60.1%, #FEFFFF 100%)",
+  };
+
+  const faqs = [
+    {
+      question: "Kenapa kita harus menjaga sungai?",
+      answer:
+        "Sungai yang bersih adalah sumber air bersih dan kunci ekosistem yang sehat bagi kita semua.",
+    },
+    {
+      question: "Bagaimana cara ikut bergabung?",
+      answer:
+        "Cukup daftar melalui aplikasi Jakal, pilih peran sebagai Pasukan Kali atau Penggerak Aksi, dan ikuti misi pembersihan terdekat di kota Anda.",
+    },
+    {
+      question: "Apakah ada biaya untuk mendaftar?",
+      answer:
+        "Tidak ada biaya sama sekali. Program ini 100% gratis dan Anda justru bisa mendapatkan poin yang bisa ditukarkan.",
+    },
+  ];
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.tsx file.
+    <>
+      <Head>
+        <title>Jakal - Jaga Kali, Jaga Hidup Kita</title>
+      </Head>
+      <div
+        className="min-h-screen flex flex-col relative z-10"
+        style={jakalGradient}
+      >
+        {/* Navbar */}
+        <header className="flex justify-between items-center px-6 py-8">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Jakal.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+          <button
+            className="p-2 text-slate-700 hover:text-slate-900 focus:outline-none"
+            aria-label="Open Menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-6 h-6"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 12h18M3 6h18M3 18h18"
+              />
+            </svg>
+          </button>
+        </header>
+
+        {/* Hero Content */}
+        <section className="px-6 pt-2 pb-6">
+          <p className="text-sm font-medium text-slate-500 mb-2">lorem ipsum</p>
+          <h2 className="text-4xl font-bold text-slate-900 leading-tight mb-4">
+            Jaga Kali,
+            <br />
+            Jaga Hidup Kita
+          </h2>
+          <p className="text-sm text-slate-500 leading-relaxed pr-4 mb-8">
+            Jadilah bagian dari solusi. Pilih untuk menjadi pasukan kali di
+            garis depan atau penggerak aksi perubahan hari ini.
           </p>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/auth/login")}
+              className="flex-1 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-md transition-all active:scale-[0.98]"
+            >
+              Mulai Sekarang
+            </button>
+            <button className="flex-1 py-3.5 rounded-xl bg-white/60 backdrop-blur-md border border-slate-200 text-slate-900 font-semibold text-sm shadow-sm hover:bg-white transition-all active:scale-[0.98]">
+              Lihat lainnya
+            </button>
+          </div>
+        </section>
+
+        {/* Fading River Image Section */}
+        <div className="relative w-full h-80 mt-4 overflow-hidden">
+          <Image
+            src="/images/landpageImg.png"
+            alt="Sungai CitraLand Surabaya"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Overlay Gradient tetap di bawahnya */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(to top, #FEFFFF 0%, transparent 100%)",
+            }}
+          ></div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Bottom Content Area & FAQ Section */}
+        <div className="bg-[#FEFFFF] px-6 py-12 flex flex-col items-center text-center flex-grow">
+          <p className="text-sm font-medium text-slate-500 mb-2">lorem ipsum</p>
+          <h2 className="text-3xl font-bold text-slate-900 leading-tight mb-4">
+            Jaga Kali,
+            <br />
+            Jaga Hidup Kita
+          </h2>
+          <p className="text-sm text-slate-500 leading-relaxed px-4 mb-8">
+            Jadilah bagian dari solusi. Pilih untuk menjadi pasukan kali di
+            garis depan atau penggerak aksi perubahan hari ini.
+          </p>
+
+          {/* Accordion List */}
+          <div className="w-full flex flex-col gap-3 pb-12">
+            {faqs.map((faq, index) => {
+              const isOpen = openFaq === index;
+              return (
+                <div
+                  key={index}
+                  className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden text-left transition-all duration-300"
+                >
+                  <button
+                    onClick={() => toggleFaq(index)}
+                    className="w-full flex justify-between items-center p-5 focus:outline-none"
+                  >
+                    <span className="font-semibold text-slate-900 text-sm pr-4">
+                      {faq.question}
+                    </span>
+                    <span className="text-slate-400 flex-shrink-0">
+                      {/* Chevron Icon dengan animasi putar */}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className={`w-5 h-5 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+
+                  {/* Jawaban FAQ */}
+                  {isOpen && (
+                    <div className="px-5 pb-5 text-sm text-slate-500 leading-relaxed animate-in fade-in slide-in-from-top-2 duration-300">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
