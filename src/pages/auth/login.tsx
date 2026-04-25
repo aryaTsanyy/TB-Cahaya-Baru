@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useRouter } from "next/router";
 
@@ -77,6 +77,18 @@ export default function LoginPage() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
   ): Promise<void> => {
@@ -149,6 +161,10 @@ export default function LoginPage() {
     }
   };
 
+  const navigateToLandingSection = (section: string) => {
+    router.push(`/?section=${section}`);
+  };
+
   return (
     <>
       <Head>
@@ -157,29 +173,112 @@ export default function LoginPage() {
 
       <div className="min-h-screen bg-[#dff1f3] text-slate-900">
         <div className="mx-auto w-full max-w-md min-h-screen flex flex-col px-6">
-          <header className="flex items-center justify-between pt-6 pb-4">
-            <span className="text-xl font-semibold tracking-tight">Jakal.</span>
+          {/* --- STICKY LIQUID GLASS NAVBAR --- */}
+          <header
+            className={`fixed top-0 left-0 right-0 z-[70] flex justify-between items-center px-6 rounded-b-2xl py-5 transition-all duration-300 max-w-md mx-auto ${
+              isScrolled || isMenuOpen
+                ? "bg-white/50 backdrop-blur-sm border-b border-white/20"
+                : "bg-transparent"
+            }`}
+          >
+            <h1
+              className="text-2xl font-bold text-slate-900 tracking-tight cursor-pointer"
+              onClick={() => router.push("/")}
+            >
+              Jakal.
+            </h1>
 
             <button
-              type="button"
-              aria-label="Menu"
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-700 hover:bg-white/40 transition-colors"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`p-2 rounded-full transition-all focus:outline-none ${
+                isMenuOpen ? "bg-slate-900/5" : "bg-transparent"
+              }`}
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="w-5 h-5"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4 7h16M4 12h16M4 17h16"
+              {isMenuOpen ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
                   stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
+                  className="w-6 h-6 text-slate-900"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                  className="w-6 h-6 text-slate-800"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 12h18M3 6h18M3 18h18"
+                  />
+                </svg>
+              )}
             </button>
           </header>
+
+          {/* --- 1/4 SCREEN LIQUID GLASS DROPDOWN MENU --- */}
+          <div
+            className={`fixed top-0 left-0 right-0 z-[60] transition-all duration-500 ease-in-out max-w-md mx-auto overflow-hidden ${
+              isMenuOpen
+                ? "translate-y-0 opacity-100 max-h-[40vh]"
+                : "-translate-y-full opacity-0 max-h-0"
+            }`}
+          >
+            <div className="bg-white/70 backdrop-blur-xl border-b border-white/60 shadow-lg rounded-b-3xl">
+              <nav className="flex flex-col px-8 pt-28 pb-10 gap-6">
+                {/* Navigasi Beranda */}
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    router.push("/");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="text-left text-xl font-extrabold text-slate-900 tracking-tight transition-all active:scale-95 active:text-sky-700"
+                >
+                  Beranda
+                </button>
+
+                {/* Navigasi Tentang Kami (FAQ) */}
+                <button
+                  onClick={() => navigateToLandingSection("faq")}
+                  className="text-left text-xl font-extrabold text-slate-900 tracking-tight transition-all active:scale-95 active:text-sky-700"
+                >
+                  Tentang Kami
+                </button>
+
+                {/* Navigasi Aksi (Impact) */}
+                <button
+                  onClick={() => navigateToLandingSection("impact-section")}
+                  className="text-left text-xl font-extrabold text-slate-900 tracking-tight transition-all active:scale-95 active:text-sky-700"
+                >
+                  Aksi
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Backdrop tetap sama */}
+          {isMenuOpen && (
+            <div
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 z-[50] bg-slate-900/10 backdrop-blur-[1px] transition-opacity duration-300"
+            />
+          )}
+
+          {/* Spacer & Sisa Konten Landing Page ... */}
+          <div className="h-20" />
 
           <section className="pt-6 pb-8">
             <h1 className="text-3xl font-semibold tracking-tight leading-tight">

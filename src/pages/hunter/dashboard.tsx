@@ -81,7 +81,6 @@ export default function HunterDashboard() {
         .returns<MyAttendanceRow[]>(),
     ]);
 
-    // Build attendance lookup map
     const attendanceMap = new Map<string, AttendanceStatus>();
     for (const att of myAttendancesRes.data ?? []) {
       attendanceMap.set(
@@ -90,7 +89,6 @@ export default function HunterDashboard() {
       );
     }
 
-    // Map events ke card data + filter event yang sudah Hunter selesaikan
     const eventCards: EventCardData[] = (eventsRes.data ?? [])
       .map(
         (evt): EventCardData => ({
