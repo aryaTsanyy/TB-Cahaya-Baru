@@ -172,7 +172,7 @@ export default function LandingPage() {
         <div className="h-24 md:h-32" />
 
         {/* --- HERO SECTION --- */}
-        <section className="max-w-6xl mx-auto px-6 pt-4 pb-12 md:pb-20 w-full flex flex-col items-center md:text-center text-start">
+        <section className="max-w-6xl mx-auto px-6 pt-4 w-full flex flex-col items-center md:text-center text-start">
           <p className="text-sm md:text-base w-full font-semibold text-slate-500 mb-3 md:mb-5 tracking-wide uppercase">
             Jaga Kali
           </p>
